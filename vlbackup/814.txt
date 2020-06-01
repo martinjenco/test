@@ -1,0 +1,102 @@
+diff --git a/client/src/TableSettingsEditor.tsx b/client/src/TableSettingsEditor.tsx
+index 22c5c02..0916003 100644
+--- a/client/src/TableSettingsEditor.tsx
++++ b/client/src/TableSettingsEditor.tsx
+@@ -23,7 +23,7 @@ const TableSettingsEditor: FC<EntityEditorProps> = ({entity_id, end_edit}) => {
+ 
+   const save = useCallback(() => {
+     if (current_name !== name) {
+-      const error_message = validate_table_name(entity_headers, parent_id, name, subtype)
++      const error_message = validate_table_name(entity_headers, entity_id, name, subtype)
+ 
+       if (error_message) {
+         // eslint-disable-next-line no-alert
+diff --git a/client/src/navigation/Navigation.tsx b/client/src/navigation/Navigation.tsx
+index 89d7b60..94102f3 100644
+--- a/client/src/navigation/Navigation.tsx
++++ b/client/src/navigation/Navigation.tsx
+@@ -57,7 +57,7 @@ const Navigation: FC = () => {
+   const _project_id = resources.project_resources?.project_id
+   const table_entity_id = resources.table_resources?.table_entity_id
+ 
+-  const project_id = table_entity_id ? entity_headers[table_entity_id].parent_id : _project_id
++  const project_id = table_entity_id ? entity_headers[table_entity_id].zone_id : _project_id
+   const organisation_id = project_id ? entity_headers[project_id].parent_id : _organisation_id
+ 
+   return (
+diff --git a/common/diffs/models/view_table_diff.ts b/common/diffs/models/view_table_diff.ts
+index 0239aaa..e1934be 100644
+--- a/common/diffs/models/view_table_diff.ts
++++ b/common/diffs/models/view_table_diff.ts
+@@ -23,7 +23,7 @@ const recipe = {
+   name: conflict_free_value_diff(),
+   label: value_diff(),
+   // id of data_table or computed_table, which is source for the view
+-  source_entity_id: value_diff(),
++  source_entity_id: constant_diff(),
+   // columns that are not included in source entity = computed columns only
+   cols: map_diff(col_diff, false, false),
+   // used to reorder columns without changing cols_order of source entity
+diff --git a/common/project_utils.ts b/common/project_utils.ts
+index d0161a6..288cf5c 100644
+--- a/common/project_utils.ts
++++ b/common/project_utils.ts
+@@ -12,7 +12,7 @@ const get_tables_in_project = (
+   return _.pickBy(
+     entity_headers,
+     (header) =>
+-      ['data_table', 'view_table'].includes(header.type) && header.parent_id === project_id
++      ['data_table', 'view_table'].includes(header.type) && header.zone_id === project_id
+   )
+ }
+ 
+@@ -47,8 +47,8 @@ const validate_table_name = (
+   if (
+     _.some(
+       entity_headers,
+-      ({name, parent_id}) =>
+-        parent_id === project_id &&
++      ({name, zone_id}) =>
++        zone_id === project_id &&
+         // 1. a table with table_name already exists
+         (name === table_name ||
+           (is_template_name
+@@ -72,8 +72,8 @@ const get_entity_to_table_name_mapping = (
+ ) =>
+   _(entity_headers)
+     .pickBy(filter)
+-    .mapValues(({name: table_name, parent_id}: EntityHeader) => {
+-      const project_entity = entity_headers[parent_id]
++    .mapValues(({name: table_name, zone_id}: EntityHeader) => {
++      const project_entity = entity_headers[zone_id]
+       const organisation_name = entity_headers[project_entity.parent_id].name
+       return `${organisation_name}/${project_entity.name}/${table_name}`
+     })
+diff --git a/common/table_actions.ts b/common/table_actions.ts
+index 13294f0..e11ca50 100644
+--- a/common/table_actions.ts
++++ b/common/table_actions.ts
+@@ -386,7 +386,7 @@ const create_new_view_table = (
+   const entity: ViewTable<'entity'> = {
+     name,
+     entity_id: id,
+-    parent_id: project_id,
++    parent_id: source_entity_id,
+     zone_id: project_id,
+     type: 'view_table',
+     source_entity_id,
+diff --git a/docs/data_model.md b/docs/data_model.md
+index 581d28f..8330063 100644
+--- a/docs/data_model.md
++++ b/docs/data_model.md
+@@ -22,8 +22,8 @@ Each entity has several attributes:
+ ```
+ entity_id // 128 bit unique ID
+ type // globally unique, used for polymorphism of entity-related fns
+-parent_id // for example, table references project to which it belongs
+-zone_id // explained below, for table it is the same as parent
++parent_id // for example, data table references project to which it belongs, view table references parent table
++zone_id // explained below, for data table it is the same as parent
+ data // JSONized whatever
+ name // many entities have human readable name
+ ```
