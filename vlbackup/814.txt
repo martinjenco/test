@@ -85,6 +85,19 @@ index 13294f0..e11ca50 100644
      zone_id: project_id,
      type: 'view_table',
      source_entity_id,
+diff --git a/common/test_data.ts b/common/test_data.ts
+index fa73dde..bf88a40 100644
+--- a/common/test_data.ts
++++ b/common/test_data.ts
+@@ -138,7 +138,7 @@ const salaries_for_user = {
+ const salaries_view = {
+   type: 'view_table',
+   zone_id: id('cool_project'),
+-  parent_id: id('cool_project'),
++  parent_id: id('salaries'),
+   entity_id: id('salaries_view'),
+   name: 'salaries_view',
+   source_entity_id: id('salaries'),
 diff --git a/docs/data_model.md b/docs/data_model.md
 index 581d28f..8330063 100644
 --- a/docs/data_model.md
@@ -100,3 +113,15 @@ index 581d28f..8330063 100644
  data // JSONized whatever
  name // many entities have human readable name
  ```
+diff --git a/server/init.ts b/server/init.ts
+index 09306a6..e8e47c6 100644
+--- a/server/init.ts
++++ b/server/init.ts
+@@ -94,6 +94,7 @@ async function init_salary_project() {
+       {
+         name: 'salaries_view',
+         type: 'view_table',
++        parent_id: id('salaries'),
+         data: entity_create_diff(salaries_view),
+       },
+     ],
